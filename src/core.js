@@ -269,6 +269,7 @@ $.extend( $.validator, {
 		validClass: "valid",
 		errorElement: "label",
 		focusCleanup: false,
+		errorGroups: {},
 		focusInvalid: true,
 		errorContainer: $( [] ),
 		errorLabelContainer: $( [] ),
@@ -395,6 +396,14 @@ $.extend( $.validator, {
 					groups[ name ] = key;
 				} );
 			} );
+			$.each( this.settings.errorGroups, function(key, value) {
+				if (typeof value == "string") {
+					value = value.split( /\s/ );
+				}
+				$.each(value, function(index, name) {
+					errorGroups[ name ] = key;
+				});
+			});
 			rules = this.settings.rules;
 			$.each( rules, function( key, value ) {
 				rules[ key ] = $.validator.normalizeRule( value );
@@ -900,7 +909,7 @@ $.extend( $.validator, {
 				if ( this.settings.highlight ) {
 					this.settings.highlight.call( this, error.element, this.settings.errorClass, this.settings.validClass );
 				}
-				this.showLabel( error.element, error.message );
+				this.showLabel( error.element, error.message, error.method );
 			}
 			if ( this.errorList.length ) {
 				this.toShow = this.toShow.add( this.containers );
@@ -929,8 +938,13 @@ $.extend( $.validator, {
 				return this.element;
 			} );
 		},
+		updateDescription: function(element, message) {
 
-		showLabel: function( element, message ) {
+		},
+		showError: function(element, errorID) {
+
+		},
+		showLabel: function( element, message, method ) {
 			var place, group, errorID, v,
 				error = this.errorsFor( element ),
 				elementID = this.idOrName( element ),
@@ -944,10 +958,33 @@ $.extend( $.validator, {
 				// Replace message on existing label
 				error.html( message );
 			} else {
+				errorID = elementID + "-error";
+				ruleGroupsByElement = {
+					'FirstName': {
+						rules:['nameInvalid', 'required'],
+						group: 'PersonName'
+					}
+				}
+				ruleGroupsByRule = {
+					required: {
+						'FirstName' : 'PersonName',
+						'MiddleName': 'PersonName'
+					}
+				}
+				ruleGroups = {
+					'PersonName': {
+						group: ['FirstName', 'MiddleName', 'LastName'],
+						rules: ['nameInvalid', 'required']
+					}
+				}
+				if (this.ruleGroupsByElement.hasOwnProperty(element.name) && this.ruleGroupsByElement[element.name].rules.indexOf(method) >= 0) {
+					errorID = this.ruleGroupsByElement[element.name] + '-' + method + '-error';
 
+					//if $()
+				}
 				// Create error element
 				error = $( "<" + this.settings.errorElement + ">" )
-					.attr( "id", elementID + "-error" )
+					.attr( "id", errorID )
 					.addClass( this.settings.errorClass )
 					.html( message || "" );
 
@@ -999,6 +1036,47 @@ $.extend( $.validator, {
 							}
 						} );
 					}
+					// instead of validating all other group members when validating a group, check current error status
+					// PROBLEM: If happening on blur, only contains the current error state
+					// maybe go by error instead of by element: it only matters whether the current error is shared by another member of the group, whereas if you go by element you need to check if the error matches any of the applicable
+					ruleGroups: {
+
+					}
+					groupRules:
+					{ group: ['field1', 'field2'],
+						labels: ['label for 1', 'label for 2'],
+						group:
+							[
+								{
+									name: 'name',
+									label: 'Label'
+								},
+
+								{
+									name: 'name',
+									label: 'Label'
+								}
+							],
+						rules: [
+							{
+								name: 'nameHere',
+								appliesTo: [0, 1]
+							}
+						]
+					}
+					addRuleGroup('name')
+					ruleGroup = {
+						PersonNameInvalid: {
+							rule: 'rulename',
+							group: 'space separated names'
+						}
+
+					}
+					errorGroup = this.errorGroups[ element.name ];
+					if (errorGroup) {
+						v = this;
+						$.each( v.errorGroups, function( name, testgroup))
+					}
 				}
 			}
 			if ( !message && this.settings.success ) {
@@ -1021,6 +1099,12 @@ $.extend( $.validator, {
 			if ( describer ) {
 				selector = selector + ", #" + this.escapeCssMeta( describer )
 					.replace( /\s+/g, ", #" );
+			} else {
+				selector = selector + ', #' + name + "-error";
+
+				if (this.groups[name]) {
+					selector = selector + ', #' + this.grous[name] + "-error";
+				}
 			}
 
 			return this
