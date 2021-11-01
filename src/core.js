@@ -977,6 +977,26 @@ $.extend( $.validator, {
 						rules: ['nameInvalid', 'required']
 					}
 				}
+				messageGroups = {
+					invalidName: {
+						rule: '',
+						group: ['test1', 'test2'],
+						labels: ['Label for 1', 'Label for 2'],
+						message: ['singular', 'plural']
+					},
+					alternateInvalidName: {
+						rules: {
+							validName: ['singular', 'plural'],
+							required: ['singular', 'plural' ]
+						},
+						fields: {
+							'name': 'label'
+						}
+					}
+				};
+				messageGroups = {
+					'test1': ['invalidName',]
+				}
 				if (this.ruleGroupsByElement.hasOwnProperty(element.name) && this.ruleGroupsByElement[element.name].rules.indexOf(method) >= 0) {
 					errorID = this.ruleGroupsByElement[element.name] + '-' + method + '-error';
 
@@ -1039,10 +1059,30 @@ $.extend( $.validator, {
 					// instead of validating all other group members when validating a group, check current error status
 					// PROBLEM: If happening on blur, only contains the current error state
 					// maybe go by error instead of by element: it only matters whether the current error is shared by another member of the group, whereas if you go by element you need to check if the error matches any of the applicable
-					ruleGroups: {
+					ruleGroups = {
 
 					}
-					groupRules:
+					messageGroups = {
+						invalidName: {
+							rule: '',
+							group: ['test1', 'test2'],
+							labels: ['Label for 1', 'Label for 2'],
+							message: ['singular', 'plural']
+						},
+						alternateInvalidName: {
+							rules: {
+								validName: ['singular', 'plural'],
+								required: ['singular', 'plural' ]
+							},
+							fields: {
+								'name': 'label'
+							}
+						}
+					};
+					messageGroupsByField = {
+						'test1': ['invalidName',]
+					}
+					groupRules =
 					{ group: ['field1', 'field2'],
 						labels: ['label for 1', 'label for 2'],
 						group:
@@ -1090,7 +1130,7 @@ $.extend( $.validator, {
 			this.toShow = this.toShow.add( error );
 		},
 
-		errorsFor: function( element ) {
+		errorsFor: function( element, method ) {
 			var name = this.escapeCssMeta( this.idOrName( element ) ),
 				describer = $( element ).attr( "aria-describedby" ),
 				selector = "label[for='" + name + "'], label[for='" + name + "'] *";
@@ -1103,10 +1143,13 @@ $.extend( $.validator, {
 				selector = selector + ', #' + name + "-error";
 
 				if (this.groups[name]) {
-					selector = selector + ', #' + this.grous[name] + "-error";
+					selector = selector + ', #' + this.groups[name] + "-error";
 				}
 			}
 
+			if (this.messageGroups[name] && method !== undefined) {
+				selector = selector + ", #" + this.messageGroups[name] + '-' + method + "-error";
+			}
 			return this
 				.errors()
 				.filter( selector );
