@@ -389,10 +389,16 @@ $.extend( $.validator, {
 				groups = ( this.groups = {} ),
 				rules;
 			$.each( this.settings.groups, function( key, value ) {
-				if ( typeof value === "string" ) {
-					value = value.split( /\s/ );
+				var members = value;
+
+				if ( typeof value === "object" && !Array.isArray( value ) ) {
+					members = value.fields;
+
 				}
-				$.each( value, function( index, name ) {
+				if ( typeof members === "string" ) {
+					members = members.split( /\s/ );
+				}
+				$.each( members, function( index, name ) {
 					groups[ name ] = key;
 				} );
 			} );
@@ -523,6 +529,7 @@ $.extend( $.validator, {
 				this.errorList = $.map( this.errorMap, function( message, name ) {
 					return {
 						message: message,
+						method: validator.errorMethodsByName[ name ],
 						element: validator.findByName( name )[ 0 ]
 					};
 				} );
@@ -596,7 +603,7 @@ $.extend( $.validator, {
 		addErrorAriaDescribedBy: function( element, error, updateGroupMembers ) {
 			updateGroupMembers = ( updateGroupMembers === undefined ) ? false : updateGroupMembers;
 
-			var errorID, v, group,
+			var errorID, v, group, groupByMethod,
 				describedBy = $( element ).attr( "aria-describedby" );
 				errorID = error.attr( "id" );
 
@@ -616,12 +623,28 @@ $.extend( $.validator, {
 				// If this element is grouped, then assign to all elements in the same group
 				group = this.groups[ element.name ];
 				if ( group ) {
+					// groupMembers = this.settings.groups[ group ];
+					if ( this.settings.groups[ group ].hasOwnProperty( "groupByMethod" ) ) {
+						//groupMembers = this.settings.groups[ group ].fields;
+						groupByMethod = this.settings.groups[ group ].groupByMethod;
+					}
+					//groupMembers = ( typeof groupMembers === "string" ) ? this.settings.groups[ group ].split( /\s/ ) : groupMembers;
+
 					v = this;
-					$.each( v.groups, function( name, testgroup ) {
-						if ( testgroup === group ) {
-							v.addErrorAriaDescribedBy( $( "[name='" + v.escapeCssMeta( name ) + "']", v.currentForm ), error, false );
-						}
-					} );
+					//for ( i = 0; i < groupMembers.length; i++ ) {
+						// always sharing error: add aria-describedBy
+
+						// multiple errors:
+					//}
+					// Don't automatically associate group fields with this error if grouping errors by method
+					if ( !groupByMethod ) {
+						$.each( v.groups, function( name, testgroup ) {
+							if ( testgroup === group ) {
+								v.addErrorAriaDescribedBy( $( "[name='" + v.escapeCssMeta( name ) + "']", v.currentForm ), error, false );
+							}
+						} );
+					}
+
 				}
 			}
 		},
@@ -746,6 +769,8 @@ $.extend( $.validator, {
 		resetInternals: function() {
 			this.successList = [];
 			this.errorList = [];
+			this.errorsByMethod = {};
+			this.errorMethodsByName = {};
 			this.errorMap = {};
 			this.toShow = $( [] );
 			this.toHide = $( [] );
@@ -950,7 +975,12 @@ $.extend( $.validator, {
 				element: element,
 				method: rule.method
 			} );
-
+			if ( typeof this.errorsByMethod[ rule.method ] == "array" ) {
+				this.errorsByMethod[ rule.method ].push( element.name );
+			} else {
+				this.errorsByMethod[ rule.method ] = [ element.name ];
+			}
+			this.errorMethodsByName[ element.name ] = rule.method;
 			this.errorMap[ element.name ] = message;
 			this.submitted[ element.name ] = message;
 		},
@@ -970,7 +1000,7 @@ $.extend( $.validator, {
 				if ( this.settings.highlight ) {
 					this.settings.highlight.call( this, error.element, this.settings.errorClass, this.settings.validClass );
 				}
-				this.showLabel( error.element, error.message );
+				this.showLabel( error.element, error.message, error.method );
 			}
 
 			if ( this.errorList.length ) {
@@ -1004,12 +1034,17 @@ $.extend( $.validator, {
 			} );
 		},
 
-		showLabel: function( element, message ) {
+		showLabel: function( element, message, method ) {
 			var place,
 				error = this.errorsFor( element ),
 				elementID = this.idOrName( element ),
 				describedBy = $( element ).attr( "aria-describedby" );
 
+			if ( this.groups[ elementID ] && this.groups[ elementID ].hasOwnProperty( "groupByMethod" ) && this.groups[ elementID ].groupByMethod )	{
+				error = error.filter( function() {
+					return $( this ).data( "method" ) == method;
+				} );
+			}
 			if ( error.length ) {
 
 				// Non-label error exists but is not currently associated with element via aria-describedby
@@ -1028,6 +1063,7 @@ $.extend( $.validator, {
 				error = $( "<" + this.settings.errorElement + ">" )
 					.attr( "id", elementID + "-error" )
 					.addClass( this.settings.errorClass )
+					.data( "method", method )
 					.html( message || "" );
 
 				// Maintain reference to the element to be placed into the DOM
@@ -1072,7 +1108,8 @@ $.extend( $.validator, {
 		errorsFor: function( element ) {
 			var name = this.escapeCssMeta( this.idOrName( element ) ),
 				describer = $( element ).attr( "aria-describedby" ),
-				selector = "label[for='" + name + "'], label[for='" + name + "'] *";
+				selector = "label[for='" + name + "'], label[for='" + name + "'] *",
+				errors;
 
 			// 'aria-describedby' should directly reference the error element
 			if ( describer ) {
@@ -1083,9 +1120,17 @@ $.extend( $.validator, {
 			// There may be hidden error elements not currently associated via aria-describedby (if ariaDescribedByCleanup is true)
 			selector = selector + ", #" + name + "-error";
 
-			return this
+			errors = this
 				.errors()
 				.filter( selector );
+
+			//
+			// if ( typeof method == "string" ) {
+			// 	errors = errors.filter( function() {
+			// 		return $( this ).data( "method" ) == method;
+			// 	} );
+			// }
+			return errors;
 		},
 
 		// See https://api.jquery.com/category/selectors/, for CSS

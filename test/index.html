@@ -188,6 +188,24 @@
 		<input name="testCleanupExistingNonErrortext" id="testCleanupExistingNonErrortext" data-rule-required="true" data-msg="required" aria-describedby="testCleanupExistingNonErrortext-description">
 		<span id="testCleanupExistingNonErrortext-description">This is where you enter your data</span>
 	</form>
+	<form id="groupByMethod">
+		<!-- test existing non-error aria-describedby with aria-describedby cleanup on valid fields -->
+		<fieldset>
+			<legend>
+				Contact Name
+			</legend>
+			<label for="groupByMethodFirst">First</label>
+			<input name="groupByMethodFirst" id="groupByMethodFirst" data-rule-required="true" data-msg="required">
+			<label for="groupByMethodMiddle">Middle</label>
+			<input name="groupByMethodMiddle" id="groupByMethodMiddle" data-rule-required="true" data-msg="required">
+			<label for="groupByMethodLast">Last</label>
+			<input name="groupByMethodLast" id="groupByMethodLast" data-rule-required="true" data-msg="required">
+
+		</fieldset>
+		<label for="groupByMethodEmail">Email</label>
+		<input name="groupByMethodEmail" id="groupByMethodEmail" type="email" data-rule-email="true" data-rule-required="true"/>
+		<button>Submit</button>
+	</form>
 	<form id="ariaDescribedByCleanup">
 		<!-- Test aria-describedby cleanup on valid fields -->
 		<label for="ariaDescribedByCleanupText">My label</label>
