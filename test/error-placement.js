@@ -510,11 +510,84 @@ QUnit.test( "test groupByMethod", function( assert ) {
 		email = $( "#" + emailID ),
 		groupName = "contactName",
 		groupOptions = { };
-	function getFullMessage( )
-		groupOptions[ groupName ] = { groupByMethod: true, fields: firstID + " " + middleID + " " + lastID };
+		errorLabels[ firstID ] = "First";
+		errorLabels[ middleID ] = "Middle";
+		errorLabels[ lastID ] = "Last";
 
+		groupOptions[ groupName ] = {
+			groupByMethod: true,
+			fields: firstID + " " + middleID + " " + lastID,
+			rules: {
+				required: true,
+				minlength: 2
+			},
+			messages:  {
+				required: requiredGroupMessage,
+				minlength: minLengthGroupMessage
+			}
+		};
+	var getLabelString = function( errorLabels ) {
+		var prettyLabelString;
+		switch (errorLabels.length) {
+			case 1:
+				prettyLabelString = errorLabels[ 0 ];
+				break;
+			case 2:
+				prettyLabelString = errorLabels[ 0 ] + " and " + errorLabels[ 1 ];
+				break;
+			default:
+				prettyLabelString = haveRequiredError.slice( 0, haveRequiredError.length - 1 ).join( ", " ) + " and " + haveRequiredError[ haveRequiredError.length - 1 ];
+				break;
+
+		}
+		return prettyLabelString;
+	};
+
+	rulesOptions[ middleID ] = { minlength: false };
+	var minLengthGroupMessage = function ( params, element ) {
+		var errorLabels = getGroupMembersWithSameError( element, "required", this ),
+			prettyLabel = getLabelString( errorLabels );
+
+		return jQuery.validator.format("Contact " + prettyLabel + " Name must be at least {0} characters.", params);	
+
+	};
+	var getGroupMembersWithSameError = function ( element, method, validator ) {
+		var elementName = element.attr( "name" ),
+			group = validator.groups[ elementName ],
+			i,
+			groupMembers = validator.settings.groups[ group ].split( /\s/ ),
+			haveSameError = [ errorLabels[ elementName ] ];
+		for ( i = 0; i < groupMembers; i++ ) {
+			if ( groupMembers[ i ] !== elementName && validator.errorsByMethod[ method ].indexOf( groupMembers[ i ] ) >= 0 ) {
+				haveSameError.push(errorLabels[ groupMembers[ i ] ]);
+			}
+		}
+		return haveSameError;
+	};
+	var requiredGroupMessage = function ( params, element ) {
+		var errorLabels = getGroupMembersWithSameError( element, "required" , this ),
+	 		verb = ( errorLabels.length > 1 ) ? "are" : "is",
+			prettyLabel = getLabelString( errorLabels );
+
+
+		return "Contact " + prettyLabel + " Name " + verb + " required.";
+	};
+	var placeError = function( error, element ) {
+		if ( element.closest( ".group" ).length ) {
+			element.closest( ".group" ).append( error );
+		} else {
+			error.insertAfter( element );
+		}
+	};
 	// First test an invalid value
-	form.validate( { errorElement: "span", ariaDescribedByCleanup: true, groups: groupOptions } );
+	form.validate(
+		{
+			errorElement: "span",
+			ariaDescribedByCleanup: true,
+			groups: groupOptions,
+			rules: rulesOptions,
+			errorPlacement: placeError
+		} );
 	form.trigger( "submit" );
 	assert.equal( first.attr( "aria-describedby" ), groupName + "-error" );
 	assert.hasError( first, "required" );

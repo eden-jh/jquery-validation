@@ -387,7 +387,8 @@ $.extend( $.validator, {
 
 			var currentForm = this.currentForm,
 				groups = ( this.groups = {} ),
-				rules;
+				rules = this.settings.rules;
+
 			$.each( this.settings.groups, function( key, value ) {
 				var members = value;
 
@@ -399,10 +400,14 @@ $.extend( $.validator, {
 					members = members.split( /\s/ );
 				}
 				$.each( members, function( index, name ) {
+					// Add rules for the group (individual element rules will override this)
+					if ( typeof value === "object" && value.hasOwnProperty( "rules" ) ) {
+						rules[ name ] = $.validator.normalizeRule( value.rules );
+					}
 					groups[ name ] = key;
 				} );
 			} );
-			rules = this.settings.rules;
+
 			$.each( rules, function( key, value ) {
 				rules[ key ] = $.validator.normalizeRule( value );
 			} );
@@ -924,6 +929,14 @@ $.extend( $.validator, {
 			return m && ( m.constructor === String ? m : m[ method ] );
 		},
 
+		customGroupMessage: function( name, method ) {
+			if ( this.groups[ name ] && this.settings.groups[ this.groups[ name ] ].messages ) {
+				var m = this.settings.groups[ this.groups[ name ] ].messages;
+				return m && ( m.constructor === String ? m : m[ method ] );
+			} else {
+				return undefined;
+			}
+		},
 		// Return the first defined argument, allowing empty strings
 		findDefined: function() {
 			for ( var i = 0; i < arguments.length; i++ ) {
@@ -951,7 +964,7 @@ $.extend( $.validator, {
 			var message = this.findDefined(
 					this.customMessage( element.name, rule.method ),
 					this.customDataMessage( element, rule.method ),
-
+					this.customGroupMessage( element.name, rule.method ),
 					// 'title' is never undefined, so handle empty string as undefined
 					!this.settings.ignoreTitle && element.title || undefined,
 					$.validator.messages[ rule.method ],
@@ -975,11 +988,13 @@ $.extend( $.validator, {
 				element: element,
 				method: rule.method
 			} );
-			if ( typeof this.errorsByMethod[ rule.method ] == "array" ) {
+			if ( this.errorsByMethod.hasOwnProperty( rule.method ) ) {
 				this.errorsByMethod[ rule.method ].push( element.name );
 			} else {
 				this.errorsByMethod[ rule.method ] = [ element.name ];
 			}
+
+
 			this.errorMethodsByName[ element.name ] = rule.method;
 			this.errorMap[ element.name ] = message;
 			this.submitted[ element.name ] = message;
@@ -1042,7 +1057,7 @@ $.extend( $.validator, {
 
 			if ( this.groups[ elementID ] && this.groups[ elementID ].hasOwnProperty( "groupByMethod" ) && this.groups[ elementID ].groupByMethod )	{
 				error = error.filter( function() {
-					return $( this ).data( "method" ) == method;
+					return $( this ).data( "method" ) === method;
 				} );
 			}
 			if ( error.length ) {
