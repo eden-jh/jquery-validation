@@ -448,12 +448,12 @@
 		<input name="year"/>
 		<button name="submitForm27" value="someValue" type="submit"><span>Submit</span></button>
 	</form>
-	
+
 	<form id="cnhFormTest">
 		<input id="cnhnumber" name="cnhnumber" required>
 		<button name="submitFormCnh" value="submitFormCnh" type="submit"><span>Submit</span></button>
 	</form>
-	
+
 	<form id="_contenteditableForm">
 		<div name="first_name" id="first_name" contenteditable placeholder="First Name"></div>
 		<br>
@@ -461,6 +461,27 @@
 	</form>
 	<form id="testForm28">
 		<input type="text" name="f28input" required>
+	</form>
+	<form id="multipleErrorTypes" method="get" action="">
+
+		<fieldset class="group">
+
+			<legend>Name</legend>
+
+			<label for="multipleErrorTypesFirst">First Name</label>
+			<input name="multipleErrorTypesFirst" id="multipleErrorTypesFirst" type="text" data-rule-required="true" data-rule-minlength="2"/>
+
+			<label for="multipleErrorTypesMiddle">Middle Name</label>
+			<input name="multipleErrorTypesMiddle" id="multipleErrorTypesMiddle" type="text" data-rule-minlength="2"/>
+
+			<label for="multipleErrorTypesLast">Last Name</label>
+			<input name="multipleErrorTypesLast" id="multipleErrorTypesLast" type="text" data-rule-required="true" data-rule-minlength="2"/>
+
+		</fieldset>
+		<label for="multipleErrorTypesEmail">Email</label>
+		<input name="multipleErrorTypesEmail" id="multipleErrorTypesEmail" type="email"/>
+
+		<input class="submit" type="submit" value="Submit" id="multipleErrorTypesSubmit" name="multipleErrorTypesSubmit">
 	</form>
 </div>
 </body>

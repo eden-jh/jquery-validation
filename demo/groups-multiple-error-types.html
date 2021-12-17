@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Test for jQuery validate() plugin - groups - showMultipleErrorTypes</title>
+	<link rel="stylesheet" media="screen" href="css/screen.css">
+	<script src="../lib/jquery.js"></script>
+	<script src="../dist/jquery.validate.js"></script>
+	<script>
+	// extend the current rules with new groovy ones
+
+	// this one requires the text "buga", we define a default message, too
+
+
+	$().ready(function() {
+		var errorMethod = "";
+		function getNameRequiredMessage( params, element ) {
+			return "required message";
+		}
+		function getNameMinLengthMessage( params, element ) {
+			return "min length message";
+		}
+		var validator = $("#testform").validate({
+
+			errorElement: "span",
+			errorPlacement: function(error, element) {
+				if ( element.closest( ".group" ).length ) {
+					error.appendTo( element.closest( ".group" ) );
+				} else {
+					error.insertAfter( element );
+				}
+			},
+			groups: {
+				name: {
+					showMultipleErrorTypes: true,
+					fields: "first middle last"
+				}
+			},
+			messages: {
+				first: {
+					required: getNameRequiredMessage,
+					minlength: getNameMinLengthMessage
+				},
+				middle: {
+					minlength: getNameMinLengthMessage
+				},
+				last: {
+					required: getNameRequiredMessage,
+					minlength: getNameMinLengthMessage
+				}
+			}
+		});
+
+	});
+	</script>
+	<style>
+	form.cmxform {
+		width: 50em;
+	}
+	em.error {
+		background:url("images/unchecked.gif") no-repeat 0px 0px;
+		padding-left: 16px;
+	}
+	em.success {
+		background:url("images/checked.gif") no-repeat 0px 0px;
+		padding-left: 16px;
+	}
+	form.cmxform label.error {
+		margin-left: auto;
+		width: 250px;
+	}
+	em.error {
+		color: black;
+	}
+	#warning {
+		display: none;
+	}
+	</style>
+</head>
+<body>
+<h1 id="banner"><a href="https://jqueryvalidation.org/">jQuery Validation Plugin</a> Demo - showMultipleErrorTypes</h1>
+<main id="main">
+	<form class="cmxform" id="testform" method="get" action="">
+		<fieldset class="group">
+
+			<legend>Name</legend>
+			<p>
+				<label for="first">First Name</label>
+				<input name="first" id="first" type="text" data-rule-required="true" data-rule-minlength="2"/>
+			</p>
+			<p>
+				<label for="middle">Middle Name</label>
+				<input name="middle" id="middle" type="text" data-rule-minlength="2"/>
+			</p>
+			<p>
+				<label for="last">Last Name</label>
+				<input name="last" id="last" type="text" data-rule-required="true" data-rule-minlength="2"/>
+			</p>
+		</fieldset>
+		<div>
+			<label for="email">Email</label>
+			<input name="email" id="email" type="email"/>
+		</div>
+		<div>
+			<label for="comments">Comments</label>
+			<textarea name="comments" id="comments"></textarea>
+		</div>
+		<input class="submit" type="submit" value="Submit">
+	</form>
+	<h3 id="warning">Your form contains tons of errors! Please try again.</h3>
+	<p><a href="index.html">Back to main page</a></p>
+</main>
+</body>
+</html>

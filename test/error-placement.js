@@ -440,3 +440,72 @@ QUnit.test( "#1632: Error hidden, but input error class not removed", function( 
 	assert.equal( v.numberOfInvalids(), 0, "There is no error" );
 	assert.equal( box2.hasClass( "error" ), false, "Box2 should not have an error class" );
 } );
+
+QUnit.test( "showMultipleErrorTypes for group", function( assert ) {
+	var prefix = "multipleErrorTypes",
+		firstID = prefix + "First",
+		middleID = prefix + "Middle",
+		lastID = prefix + "Last",
+		first = $( "#" + firstID ),
+		middle = $( "#" + middleID ),
+		last = $( "#" + lastID ),
+		submit = $( "#" + prefix + "Submit" ),
+		requiredMessage = "Message when something is required",
+		minLengthMessage = "Message when something is under the min length",
+		options = {
+			errorElement: "span",
+			groups: {
+				name: {
+					showMultipleErrorTypes: true,
+					fields: "multipleErrorTypesFirst multipleErrorTypesMiddle multipleErrorTypesLast"
+				}
+			},
+			messages: { }
+	};
+
+	options.messages[ firstID ] = {};
+	options.messages[ middleID ] = {};
+	options.messages[ lastID ] = {};
+	options.messages[ firstID ].required = options.messages[ lastID ].required = requiredMessage;
+	options.messages[ firstID ].minlength = options.messages[ middleID ].minlength = options.messages[ lastID ].minlength = minLengthMessage;
+	$( "#multipleErrorTypes" ).validate( options );
+	submit.trigger( "click" );
+	assert.equal( first.attr( "aria-describedby" ), "name-required-error" );
+	assert.equal( $( "#name-required-error" ).text(), requiredMessage );
+	function groupFieldsHaveSameDescription () {
+		return first.attr( "aria-describedby" ) === middle.attr( "aria-describedby" ) &&
+		middle.attr( "aria-describedby" ) === last.attr( "aria-describedby" );
+	}
+	assert.equal( groupFieldsHaveSameDescription(), true );
+	first.val( "m" ).trigger( "blur" );
+	var requiredErrorID = new RegExp( "\\b" + "name-required-error" + "\\b" ),
+		minLengthErrorID = new RegExp( "\\b" + "name-minlength-error" + "\\b" );
+	assert.equal( requiredErrorID.test( first.attr( "aria-describedby" ) ), true, "Field not associated with both errors" );
+	assert.equal( minLengthErrorID.test( first.attr( "aria-describedby" ) ), true, "Field not associated with both errors" );
+
+	assert.equal( groupFieldsHaveSameDescription(), true );
+	assert.equal( $( "#name-required-error" ).text(), requiredMessage );
+	assert.equal( $( "#name-minlength-error" ).text(), minLengthMessage );
+
+	middle.val( "m" ).trigger( "blur" );
+	assert.equal( $( "#name-minlength-error" ).text(), minLengthMessage );
+	assert.equal( requiredErrorID.test( middle.attr( "aria-describedby" ) ), true, "Field not associated with both errors" );
+	assert.equal( minLengthErrorID.test( middle.attr( "aria-describedby" ) ), true, "Field not associated with both errors" );
+	assert.equal( groupFieldsHaveSameDescription(), true );
+
+	middle.val( "" );
+	first.val( "" ).trigger( "blur" );
+
+	assert.equal( $( "#name-minlength-error" ).text(), "", "Error message not blank" );
+	assert.equal( $( "#name-minlength-error" ).css( "display" ), "none", "Error message not hidden" );
+	assert.equal( requiredErrorID.test( middle.attr( "aria-describedby" ) ), true, "Field not associated with both errors" );
+	assert.equal( minLengthErrorID.test( middle.attr( "aria-describedby" ) ), true, "Field not associated with both errors" );
+	assert.equal( groupFieldsHaveSameDescription(), true, "Group members not all aria-describedby both errors" );
+
+	first.val( "Person" );
+	last.val( "Lastname" ).trigger( "blur" );
+
+	assert.equal( $( "#name-required-error" ).text(), "", "Required error message not blank" );
+	assert.equal( $( "#name-required-error" ).css( "display" ), "none", "Required error message not hidden" );
+
+} );

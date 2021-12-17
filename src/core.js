@@ -388,6 +388,9 @@ $.extend( $.validator, {
 				groups = ( this.groups = {} ),
 				rules;
 			$.each( this.settings.groups, function( key, value ) {
+				if ( value.hasOwnProperty( "showMultipleErrorTypes" ) ) {
+					value = value.fields;
+				}
 				if ( typeof value === "string" ) {
 					value = value.split( /\s/ );
 				}
@@ -517,11 +520,16 @@ $.extend( $.validator, {
 
 				// Add items to error list and map
 				$.extend( this.errorMap, errors );
-				this.errorList = $.map( this.errorMap, function( message, name ) {
-					return {
-						message: message,
-						element: validator.findByName( name )[ 0 ]
-					};
+				this.errorList = $.map( this.errorMap, function( error, name ) {
+					var message = ( typeof error === "string" ) ? error : error.message,
+						errorData =  {
+							message: message,
+							element: validator.findByName( name )[ 0 ]
+						};
+					if ( error.hasOwnProperty( "method" ) ) {
+						errorData.method = error.method;
+					}
+					return errorData;
 				} );
 
 				// Remove items from success list
@@ -900,7 +908,7 @@ $.extend( $.validator, {
 				if ( this.settings.highlight ) {
 					this.settings.highlight.call( this, error.element, this.settings.errorClass, this.settings.validClass );
 				}
-				this.showLabel( error.element, error.message );
+				this.showLabel( error.element, error.message, error.method );
 			}
 			if ( this.errorList.length ) {
 				this.toShow = this.toShow.add( this.containers );
@@ -930,11 +938,22 @@ $.extend( $.validator, {
 			} );
 		},
 
-		showLabel: function( element, message ) {
-			var place, group, errorID, v,
+// Only want to add method to ID if this is a group and showMultipleErrorTypes is on
+		showLabel: function( element, message, method ) {
+			var place, v,
+				group = this.groups[ element.name ],
+
+			// Only need to filter by method for specific instances, maybe filter the results of error
 				error = this.errorsFor( element ),
 				elementID = this.idOrName( element ),
-				describedBy = $( element ).attr( "aria-describedby" );
+				describedBy = $( element ).attr( "aria-describedby" ),
+				showMultipleErrorTypes = ( group && this.settings.groups[ group ].hasOwnProperty( "showMultipleErrorTypes" ) && typeof method === "string" ) ? this.settings.groups[ group ].showMultipleErrorTypes :  false,
+				errorID = elementID + "-error";
+
+			if ( showMultipleErrorTypes ) {
+				error = error.filter( "[data-method='" + method + "']" );
+				errorID = elementID + "-" + method + "-error";
+			}
 
 			if ( error.length ) {
 
@@ -976,26 +995,25 @@ $.extend( $.validator, {
 					// If the element is not a child of an associated label, then it's necessary
 					// to explicitly apply aria-describedby
 				} else if ( error.parents( "label[for='" + this.escapeCssMeta( elementID ) + "']" ).length === 0 ) {
-					errorID = error.attr( "id" );
 
-					// Respect existing non-error aria-describedby
-					if ( !describedBy ) {
-						describedBy = errorID;
-					} else if ( !describedBy.match( new RegExp( "\\b" + this.escapeCssMeta( errorID ) + "\\b" ) ) ) {
-
-						// Add to end of list if not already present
-						describedBy += " " + errorID;
-					}
-					$( element ).attr( "aria-describedby", describedBy );
+					$( element ).attr( "aria-describedby", this.addToSpaceSeparatedString( describedBy, errorID ) );
 
 					// If this element is grouped, then assign to all elements in the same group
-					group = this.groups[ element.name ];
+
 					if ( group ) {
+						if ( showMultipleErrorTypes && typeof method === "string" ) {
+							place.attr( "data-method", method )
+								.attr( "id", elementID + "-" + method + "-error" );
+						}
 						v = this;
 						$.each( v.groups, function( name, testgroup ) {
+
 							if ( testgroup === group ) {
-								$( "[name='" + v.escapeCssMeta( name ) + "']", v.currentForm )
-									.attr( "aria-describedby", error.attr( "id" ) );
+								var groupElement = $( "[name='" + v.escapeCssMeta( name ) + "']", v.currentForm ),
+									currentDescribedBy = groupElement.attr( "aria-describedby" );
+
+								groupElement.attr( "aria-describedby", v.addToSpaceSeparatedString( currentDescribedBy, error.attr( "id" ) ) );
+
 							}
 						} );
 					}
@@ -1012,6 +1030,21 @@ $.extend( $.validator, {
 			this.toShow = this.toShow.add( error );
 		},
 
+		addToSpaceSeparatedString: function( currentValue, valueToAdd ) {
+			var newValue;
+			if ( currentValue ) {
+				newValue = currentValue.match( new RegExp( "\\b" + this.escapeCssMeta( valueToAdd ) + "\\b" ) ) ? currentValue : currentValue + " " + valueToAdd;
+			} else {
+				newValue = valueToAdd;
+			}
+			return newValue;
+		},
+
+// If showing multiple elements per error type per group: method will be included in element ID (but I guess it doesn't matter if you're not looking for it by just the ID)
+// But it does create a problem because existing errors for the group will aria-describe all fields in the group, and be returned as an error for this element
+// So we need to filter out elements that don't apply to this particular method
+
+// May want errorsFor to return other error types when used to hide errors
 		errorsFor: function( element ) {
 			var name = this.escapeCssMeta( this.idOrName( element ) ),
 				describer = $( element ).attr( "aria-describedby" ),
@@ -1032,7 +1065,7 @@ $.extend( $.validator, {
 		// meta-characters that should be escaped in order to be used with JQuery
 		// as a literal part of a name/id or any selector.
 		escapeCssMeta: function( string ) {
-			if (string === undefined) return "";
+			if ( string === undefined ) { return ""; }
 			return string.replace( /([\\!"#$%&'()*+,./:;<=>?@\[\]^`{|}~])/g, "\\$1" );
 		},
 
@@ -1587,7 +1620,8 @@ $.extend( $.validator, {
 					} else {
 						errors = {};
 						message = response || validator.defaultMessage( element, { method: method, parameters: value } );
-						errors[ element.name ] = previous.message = message;
+						errors[ element.name ] = { method: method };
+						errors[ element.name ].message = previous.message = message;
 						validator.invalid[ element.name ] = true;
 						validator.showErrors( errors );
 					}
