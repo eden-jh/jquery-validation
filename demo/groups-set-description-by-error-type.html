@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>jQuery Validation Plugin Demo - ariaDescribedByCleanup set to true</title>
+	<link rel="stylesheet" href="css/screen.css">
+	<script src="../lib/jquery.js"></script>
+	<script src="../dist/jquery.validate.js"></script>
+	<script>
+	$.validator.setDefaults({
+		submitHandler: function() {
+			alert("submitted!");
+		}
+	});
+
+	$().ready(function() {
+		var errorLabels = {
+			first: "First",
+			middle: "M"
+		};
+		// find relevant errors
+		// get appropriate labels
+		// order correctly
+		// if submitting form, order is correct. if event, goes through non-event fields in order, followed by event field
+		// mouse down on submit triggers something else, mouse up triggers submit
+		// last ends up being first because errorList doesn't contain the other two errors until it reaches last, at which point it gets added first
+		// is order DOM order or group order?
+		function filterErrors( errors, group, method, validator ) {
+			$.map(errors, function(element) {
+
+				if (validator.groups[element.element.name] == group && element.method == method ) {
+					return $("label[for="+ element.element.id + "]").text();
+				}
+			});
+
+		}
+		function requiredMessage( params, element ) {
+			var v = this,
+			labels = [ $("label[for=" + element.id  + "]").text() ],
+			combinedLabels = "";
+			console.log(this);
+			console.log( this.errorList );
+			$( this.errorList ).each( function( i, error ) {
+				if ( v.groups[error.element.name] == "fullName" && error.method == "required" ) {
+					labels = labels.concat( $("label[for=" + error.element.id + "]").text() );
+				}
+			} );
+			if ( labels.length == 1 ) {
+				combinedLabels = labels[0];
+			} else {
+				if ( labels.length > 2 ) {
+					labels = [ labels.slice( 0, labels.length - 1 ).join( ", " ), labels[ labels.length - 1 ] ];
+				}
+				combinedLabels = labels.join( " and " );
+			}
+			return (labels.length > 1) ? combinedLabels + " are required" : combinedLabels + " is required";
+		}
+		var valid = $("#group-form").validate({
+		  errorElement: 'div',
+
+		  groups: {
+		    fullName: {
+				fields: "first middle last",
+				rules: { required: true, minlength: 2 },
+				showMultipleErrorTypes: true,
+				setDescriptionByErrorType: true,
+				messages: {
+					required: requiredMessage
+				}
+			},
+
+		  },
+		  ariaDescribedByCleanup: true,
+		  rules: {
+
+
+		    middle: {required: true},
+		    email: { required: true, email: true },
+			phone: { required: true },
+			comment: {required: true, maxlength: 300}
+		  }
+		});
+		$('button[type="reset"]').on('click',function(){
+		  valid.resetForm();
+		});
+
+	});
+	</script>
+	<style>
+		#group-form {
+			width: 35rem;
+		}
+		.textarea-container {
+			display: inline-block;
+		}
+		.description {
+			display: block;
+		}
+	</style>
+</head>
+<body>
+<h1 id="banner"><a href="https://jqueryvalidation.org/">jQuery Validation Plugin</a> Demo - ariaDescribedByCleanup set to true</h1>
+<main id="main">
+
+	<form id="group-form" class="cmxform" aria-labelledby="group-example-title" aria-describedby="required-note">
+
+	<div class="box">
+		<h2 id="group-example-title">Example with group</h2>
+		<div><p id="required-note">Fields marked with * are required</p></div>
+
+	    <div id="errorlabelcontainer"></div>
+	    <fieldset>
+			<legend>Name*</legend>
+			<div class="row">
+				<div class="col">
+	  	    <label for="first">First</label>
+	  	    <input type="text" aria-required="true" id="first" name="first"/>
+	  	    </div>
+	  	      <div class="col">
+	  	    <label for="middle">Middle</label>
+	  	    <input type="text" aria-required="true" id="middle" name="middle"/>
+	  	    </div>
+	  	      <div class="col">
+	  	    <label for="last">Last</label>
+	  	    <input type="text" aria-required="true" id="last"  name="last"/>
+	  	    </div>
+			</div>
+
+	    </fieldset>
+
+	    <div class="row">
+	    <label for="email">Email*</label>
+	    <input type="email" id="email" aria-required="true" name="email"/>
+	    </div>
+
+		<div class="row">
+	    <label for="phone">Phone*</label>
+	    <input type="text" id="phone" aria-required="true" name="phone"/>
+	    </div>
+		<div class="row">
+			<label for="comment">Your comment*</label>
+			<div class="textarea-container">
+				<textarea id="comment" name="comment" aria-required="true" aria-describedby="comment-max-length"></textarea>
+				<span class="description" id="comment-max-length">300 characters maximum</span>
+			</div>
+
+		</div>
+		<div class="row">
+
+		    <button>Submit</button>
+		    <button type="reset">Reset</button>
+		</div>
+	</div>
+
+</form>
+<p><a href="index.html">Back to main page</a></p>
+</div>
+</main>
+</html>

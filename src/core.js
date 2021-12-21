@@ -1039,6 +1039,7 @@ $.extend( $.validator, {
 				elementID = this.idOrName( element ),
 				describedBy = $( element ).attr( "aria-describedby" ),
 				showMultipleErrorTypes = ( group && this.settings.groups[ group ].hasOwnProperty( "showMultipleErrorTypes" ) && typeof method === "string" ) ? this.settings.groups[ group ].showMultipleErrorTypes :  false,
+				setDescriptionByErrorType = ( group && showMultipleErrorTypes && this.settings.groups[ group ].hasOwnProperty( "setDescriptionByErrorType" ) ) ? this.settings.groups[ group ].setDescriptionByErrorType : false,
 				errorID = elementID + "-error";
 
 			if ( showMultipleErrorTypes ) {
@@ -1093,6 +1094,7 @@ $.extend( $.validator, {
 				} else if ( error.parents( "label[for='" + this.escapeCssMeta( elementID ) + "']" ).length === 0 ) {
 					if ( group && showMultipleErrorTypes && typeof method === "string" ) {
 						error.attr( "data-method", method )
+							.attr( "data-group", group )
 							.attr( "id", elementID + "-" + method + "-error" );
 					}
 					this.addErrorAriaDescribedBy( element, error, method );
@@ -1100,7 +1102,7 @@ $.extend( $.validator, {
 			}
 
 			// If this element is grouped, then assign to all elements in the same group
-			if ( group ) {
+			if ( group  && !setDescriptionByErrorType ) {
 
 				v = this;
 				$.each( v.groups, function( name, testgroup ) {
@@ -1151,6 +1153,7 @@ $.extend( $.validator, {
 
 			// There may be hidden error elements not currently associated via aria-describedby (if ariaDescribedByCleanup is true)
 			selector = selector + ", #" + name + "-error";
+			selector = selector + ", [id|='" + name + "'][id$='-error']";
 
 			return this
 				.errors()
