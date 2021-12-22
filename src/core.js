@@ -643,8 +643,9 @@ $.extend( $.validator, {
 		},
 
 		removeErrorAriaDescribedBy: function( element, error ) {
+			error = ( error === undefined ) ? this.errorsFor( element ) : error;
 
-			var describedBy = $( element ).attr( "aria-describedby" ),
+			var describedBy = $( element ).attr( "aria-describedby" ) || "",
 				describedByIds = describedBy.split( " " ),
 				errorID = error.attr( "id" ),
 				ind = describedByIds.indexOf( errorID );
@@ -1004,9 +1005,14 @@ $.extend( $.validator, {
 				this.toShow = this.toShow.add( this.containers );
 			}
 
-			if ( this.settings.success ) {
+			if ( this.settings.success || this.settings.ariaDescribedByCleanup ) {
 				for ( i = 0; this.successList[ i ]; i++ ) {
-					this.showLabel( this.successList[ i ] );
+					if ( this.settings.success ) {
+						this.showLabel( this.successList[ i ] );
+					}
+					if ( this.settings.ariaDescribedByCleanup ) {
+						this.removeErrorAriaDescribedBy( this.successList[ i ] );
+					}
 				}
 			}
 
@@ -1033,18 +1039,24 @@ $.extend( $.validator, {
 
 // Only want to add method to ID if this is a group and showMultipleErrorTypes is on
 		showLabel: function( element, message, method ) {
-			var place, v,
+			var place, v, methodSpecificError,
 				group = this.groups[ element.name ],
 				error = this.errorsFor( element ),
 				elementID = this.idOrName( element ),
 				describedBy = $( element ).attr( "aria-describedby" ),
 				showMultipleErrorTypes = ( group && this.settings.groups[ group ].hasOwnProperty( "showMultipleErrorTypes" ) && typeof method === "string" ) ? this.settings.groups[ group ].showMultipleErrorTypes :  false,
-				setDescriptionByErrorType = ( group && showMultipleErrorTypes && this.settings.groups[ group ].hasOwnProperty( "setDescriptionByErrorType" ) ) ? this.settings.groups[ group ].setDescriptionByErrorType : false,
-				errorID = elementID + "-error";
+				setDescriptionByErrorType = ( group && showMultipleErrorTypes && this.settings.groups[ group ].hasOwnProperty( "setDescriptionByErrorType" ) ) ? this.settings.groups[ group ].setDescriptionByErrorType : false;
 
 			if ( showMultipleErrorTypes ) {
-				error = error.filter( "[data-method='" + method + "']" );
-				errorID = elementID + "-" + method + "-error";
+
+				methodSpecificError = error.filter( "[data-method='" + method + "']" );
+
+				// If aria-describedby only used for group members with that specific type of error, elements should only be describedby one error at a time, so remove the other error
+				if ( setDescriptionByErrorType && ( error.length > 1 || ( error.length === 1 && methodSpecificError.length === 0 ) ) ) {
+					this.removeErrorAriaDescribedBy( element, error.not( methodSpecificError ) );
+				}
+
+				error = methodSpecificError;
 			}
 
 			if ( error.length ) {

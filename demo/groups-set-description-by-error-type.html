@@ -25,30 +25,40 @@
 		// mouse down on submit triggers something else, mouse up triggers submit
 		// last ends up being first because errorList doesn't contain the other two errors until it reaches last, at which point it gets added first
 		// is order DOM order or group order?
-		function filterErrors( errors, group, method, validator ) {
-			$.map(errors, function(element) {
+		// error is not being removed for a specific field because it's only removed when the error is hidden completely
+		// needs to be removed when there's a different error for that field, or when that field has no error
+		var getRelevantErrorLabels = function( errors, group, method, validator ) {
+			var labels = [];
+			errors.sort( function( a, b ) {
+				switch( jQuery( a.element )[ 0 ].compareDocumentPosition( jQuery( b.element )[ 0 ] ) ) {
+					case Node.DOCUMENT_POSITION_PRECEDING:
+						return 1;
+					case Node.DOCUMENT_POSITION_FOLLOWING:
+						return -1;
+				}
+			} );
+			$.each(errors, function(index, error) {
+				var element = $(error.element),
+					elementName = element.attr("name");
+				if (validator.groups[elementName] == group && error.method == method ) {
 
-				if (validator.groups[element.element.name] == group && element.method == method ) {
-					return $("label[for="+ element.element.id + "]").text();
+					labels.push($("label[for="+ element.attr("id") + "]").text());
 				}
 			});
 
+			return labels;
 		}
 		function requiredMessage( params, element ) {
 			var v = this,
-			labels = [ $("label[for=" + element.id  + "]").text() ],
-			combinedLabels = "";
-			console.log(this);
-			console.log( this.errorList );
-			$( this.errorList ).each( function( i, error ) {
-				if ( v.groups[error.element.name] == "fullName" && error.method == "required" ) {
-					labels = labels.concat( $("label[for=" + error.element.id + "]").text() );
-				}
-			} );
+			combinedLabels = "",
+			relevantErrors = this.errorList.concat( { element: element, method: "required" } ),
+			labels = getRelevantErrorLabels( relevantErrors, this.groups[ element.id ], "required", this );
+
 			if ( labels.length == 1 ) {
 				combinedLabels = labels[0];
 			} else {
 				if ( labels.length > 2 ) {
+
 					labels = [ labels.slice( 0, labels.length - 1 ).join( ", " ), labels[ labels.length - 1 ] ];
 				}
 				combinedLabels = labels.join( " and " );
