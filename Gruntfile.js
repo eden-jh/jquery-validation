@@ -67,6 +67,18 @@ grunt.initConfig( {
 			files: {
 				"dist/additional-methods.js": [ "src/additional/additional.js", "src/additional/*.js" ]
 			}
+		},
+		util: {
+			options: {
+				banner: banner +
+					umdStart +
+					umdAdditionalDefine +
+					umdMiddle,
+				footer: umdEnd
+			},
+			files: {
+				"dist/util-methods.js": [ "src/util/*.js" ]
+			}
 		}
 	},
 	uglify: {
@@ -81,7 +93,8 @@ grunt.initConfig( {
 		dist: {
 			files: {
 				"dist/additional-methods.min.js": "dist/additional-methods.js",
-				"dist/jquery.validate.min.js": "dist/jquery.validate.js"
+				"dist/jquery.validate.min.js": "dist/jquery.validate.js",
+				"dist/util-methods.min.js": "dist/util-methods.js"
 			}
 		},
 		all: {
@@ -189,7 +202,8 @@ grunt.initConfig( {
 			src: [
 				"dist/jquery.validate.{min.js,js}",
 				"dist/additional-methods.{min.js,js}",
-				"dist/localization/*.js"
+				"dist/localization/*.js",
+				"dist/util-methods.{min.js,js}"
 			]
 		}
 	}

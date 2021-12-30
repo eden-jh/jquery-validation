@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>jQuery Validation Plugin Demo - ariaDescribedByCleanup set to true</title>
+	<title>jQuery Validation Plugin Demo - groups sharing description based on error type</title>
 	<link rel="stylesheet" href="css/screen.css">
 	<script src="../lib/jquery.js"></script>
 	<script src="../dist/jquery.validate.js"></script>
+	<script src="../dist/util-methods.js"></script>
 	<script>
 	$.validator.setDefaults({
 		submitHandler: function() {
@@ -29,14 +30,8 @@
 		// needs to be removed when there's a different error for that field, or when that field has no error
 		var getRelevantErrorLabels = function( errors, group, method, validator ) {
 			var labels = [];
-			errors.sort( function( a, b ) {
-				switch( jQuery( a.element )[ 0 ].compareDocumentPosition( jQuery( b.element )[ 0 ] ) ) {
-					case Node.DOCUMENT_POSITION_PRECEDING:
-						return 1;
-					case Node.DOCUMENT_POSITION_FOLLOWING:
-						return -1;
-				}
-			} );
+			errors = $.validator.filterErrorsByGroupAndMethod.call( validator, errors, group, method );
+
 			$.each(errors, function(index, error) {
 				var element = $(error.element),
 					elementName = element.attr("name");
@@ -50,20 +45,18 @@
 		}
 		function requiredMessage( params, element ) {
 			var v = this,
-			combinedLabels = "",
 			relevantErrors = this.errorList.concat( { element: element, method: "required" } ),
-			labels = getRelevantErrorLabels( relevantErrors, this.groups[ element.id ], "required", this );
+			labels = getRelevantErrorLabels( relevantErrors, this.groups[ element.id ], "required", this ),
+			labelText = $.validator.getReadableList( labels );
 
-			if ( labels.length == 1 ) {
-				combinedLabels = labels[0];
-			} else {
-				if ( labels.length > 2 ) {
+			return (labels.length > 1) ? labelText + " Name are required" : labelText + " Name is required";
+		}
+		function minLengthMessage( params, element ) {
+			var relevantErrors = this.errorList.concat( { element: element, method: "minlength" } ),
+				labels = getRelevantErrorLabels( relevantErrors, this.groups[ element.id ], "minlength", this ),
+				labelText = $.validator.getReadableList( labels );
 
-					labels = [ labels.slice( 0, labels.length - 1 ).join( ", " ), labels[ labels.length - 1 ] ];
-				}
-				combinedLabels = labels.join( " and " );
-			}
-			return (labels.length > 1) ? combinedLabels + " are required" : combinedLabels + " is required";
+			return labelText + " Name must be at least 2 characters";
 		}
 		var valid = $("#group-form").validate({
 		  errorElement: 'div',
@@ -75,7 +68,8 @@
 				showMultipleErrorTypes: true,
 				setDescriptionByErrorType: true,
 				messages: {
-					required: requiredMessage
+					required: requiredMessage,
+					minlength: minLengthMessage
 				}
 			},
 
@@ -109,7 +103,7 @@
 	</style>
 </head>
 <body>
-<h1 id="banner"><a href="https://jqueryvalidation.org/">jQuery Validation Plugin</a> Demo - ariaDescribedByCleanup set to true</h1>
+<h1 id="banner"><a href="https://jqueryvalidation.org/">jQuery Validation Plugin</a> Demo - groups sharing description based on error type</h1>
 <main id="main">
 
 	<form id="group-form" class="cmxform" aria-labelledby="group-example-title" aria-describedby="required-note">
