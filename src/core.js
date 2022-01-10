@@ -645,8 +645,8 @@ $.extend( $.validator, {
 		removeErrorAriaDescribedBy: function( element, error ) {
 			error = ( error === undefined ) ? this.errorsFor( element ) : error;
 
-			var describedBy = $( element ).attr( "aria-describedby" ) || "",
-				describedByIds = describedBy.split( " " ),
+			var describedBy = $( element ).attr( "aria-describedby" ),
+				describedByIds = ( describedBy ) ? describedBy.split( " " ) : [],
 				errorID = error.attr( "id" ),
 				ind = describedByIds.indexOf( errorID );
 
